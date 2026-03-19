@@ -32,7 +32,7 @@ function MainLayout() {
       // Redirect to tabs if authenticated and trying to access login
       router.replace('/(tabs)');
     }
-  }, [user, loading, segments]);
+  }, [user, loading, segments, router]);
 
   if (loading) {
     return (

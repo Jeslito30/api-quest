@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  Image, ActivityIndicator, TextInput, ScrollView, StatusBar,
+  Image, ActivityIndicator, TextInput, ScrollView,
 } from 'react-native';
 import { fetchNews, searchImages } from '@/services/api';
 import { COLORS, RADIUS, SPACING } from '@/constants/gemini-theme';
@@ -17,34 +17,34 @@ export default function ExploreScreen() {
   const [selectedCategory, setSelectedCategory] = useState('Technology');
   const [activeTab, setActiveTab] = useState('news'); // news | images
 
-  const loadNews = async (query) => {
+  const loadNews = useCallback(async (query) => {
     setLoading(true); setError('');
     try {
       const data = await fetchNews(query || selectedCategory.toLowerCase());
       setNews(data.filter(n => n.title && n.title !== '[Removed]'));
-    } catch (e) {
+    } catch {
       setError('Failed to load news. Check your News API key.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedCategory]);
 
-  const loadImages = async (query) => {
+  const loadImages = useCallback(async (query) => {
     setLoading(true); setError('');
     try {
       const data = await searchImages(query || selectedCategory);
       setImages(data);
-    } catch (e) {
+    } catch {
       setError('Failed to load images. Check your Unsplash API key.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedCategory]);
 
   useEffect(() => {
     if (activeTab === 'news') loadNews();
     else loadImages();
-  }, [selectedCategory, activeTab]);
+  }, [activeTab, loadNews, loadImages]);
 
   const handleSearch = () => {
     if (activeTab === 'news') loadNews(searchQuery);

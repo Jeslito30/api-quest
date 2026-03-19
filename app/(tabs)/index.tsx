@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, FlatList, Dimensions, StatusBar, Keyboard,
+  ScrollView, FlatList, Dimensions, Keyboard,
   KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
   greetingHello: { fontSize: 28, fontWeight: '700', color: COLORS.textPrimary },
   greetingText: { marginBottom: SPACING.xs },
   greetingSubtitle: {
-    fontSize: 20, fontWeight: '600', color: 'transparent',
+    fontSize: 20, fontWeight: '600',
     paddingVertical: 2, paddingHorizontal: 0,
     // gradient text trick: bg will show as gradient, text transparent
     color: '#fff', opacity: 0.85,

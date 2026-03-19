@@ -2,11 +2,11 @@ import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator,
-  Dimensions, StatusBar,
+  Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '@/context/AuthContext';
-import { COLORS, RADIUS, SPACING } from '../theme';
+import { COLORS, RADIUS, SPACING } from '../constants/gemini-theme';
 
 const { width, height } = Dimensions.get('window');
 
@@ -40,7 +40,7 @@ export default function LoginScreen() {
         : await signInWithEmail(email, password);
       if (authError) setError(authError.message);
       else if (isSignUp) setSuccess('Account created! Check your email to confirm.');
-    } catch (e) {
+    } catch {
       setError('An unexpected error occurred.');
     } finally {
       setLoading(false);
@@ -64,7 +64,7 @@ export default function LoginScreen() {
 
           <Text style={styles.title}>Gemini</Text>
           <Text style={styles.subtitle}>
-            Your AI assistant — powered by Google's{'\n'}most capable models
+            Your AI assistant — powered by Google&apos;s{'\n'}most capable models
           </Text>
 
           <View style={styles.card}>
@@ -131,7 +131,7 @@ export default function LoginScreen() {
 
             <TouchableOpacity onPress={() => { setIsSignUp(!isSignUp); setError(''); setSuccess(''); }}>
               <Text style={styles.switchText}>
-                {isSignUp ? 'Already have an account? ' : "Don't have an account? "}
+                {isSignUp ? 'Already have an account? ' : "Don&apos;t have an account? "}
                 <Text style={styles.switchLink}>{isSignUp ? 'Sign In' : 'Sign Up'}</Text>
               </Text>
             </TouchableOpacity>

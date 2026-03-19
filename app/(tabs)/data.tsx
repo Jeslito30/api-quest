@@ -1,15 +1,15 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  Image, ActivityIndicator, ScrollView, Dimensions,
-  StatusBar, TextInput,
+  Image, ActivityIndicator, ScrollView,
+  TextInput,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useChat } from '@/context/ChatContext';
 import { COLORS, RADIUS, SPACING } from '@/constants/gemini-theme';
 
-const { width } = Dimensions.get('window');
+// const { width } = Dimensions.get('window');
 
 // ─── Result Cards ──────────────────────────────────────────────────────────────
 const ChatResultCard = ({ item }) => (

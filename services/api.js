@@ -32,8 +32,15 @@ export const generateSlides = async (topic) => {
 Return ONLY valid JSON (no markdown, no explanation):
 {"title":"...","slides":[{"title":"...","content":"...","bulletPoints":["...","...","..."]}]}`;
   const raw = await geminiPost(prompt, 2048, 0.7);
-  const cleaned = raw.replace(/```json|```/g, '').trim();
-  return JSON.parse(cleaned);
+  try {
+    const cleaned = raw.replace(/```json|```/g, '').trim();
+    return JSON.parse(cleaned);
+  } catch (e) {
+    console.error('JSON Parse Error:', e, raw);
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (jsonMatch) return JSON.parse(jsonMatch[0]);
+    throw new Error('Failed to parse AI response as JSON');
+  }
 };
 
 // ─── Video Script Generation ─────────────────────────────────────────────────
@@ -42,8 +49,15 @@ export const generateVideoScript = async (topic) => {
 Return ONLY valid JSON (no markdown):
 {"title":"...","duration":"2 minutes","scenes":[{"scene":1,"title":"...","description":"...","narration":"...","duration":"30s"}]}`;
   const raw = await geminiPost(prompt, 2048, 0.8);
-  const cleaned = raw.replace(/```json|```/g, '').trim();
-  return JSON.parse(cleaned);
+  try {
+    const cleaned = raw.replace(/```json|```/g, '').trim();
+    return JSON.parse(cleaned);
+  } catch (e) {
+    console.error('JSON Parse Error:', e, raw);
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (jsonMatch) return JSON.parse(jsonMatch[0]);
+    throw new Error('Failed to parse AI response as JSON');
+  }
 };
 
 // ─── Image Generation (Pollinations.ai — Free, no key) ───────────────────────
