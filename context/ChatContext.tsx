@@ -5,7 +5,9 @@
  * Persistent history is stored in Supabase via services/history.js.
  * Call saveToHistory() from your screen after a successful API call.
  */
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useAuth } from './AuthContext';
+import { fetchHistory } from '@/services/history';
 
 interface ChatContextType {
   conversations: any[];
@@ -18,8 +20,30 @@ interface ChatContextType {
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
 export const ChatProvider = ({ children }: { children: ReactNode }) => {
+  const { userId } = useAuth();
   const [conversations, setConversations] = useState<any[]>([]);
   const [activeMode, setActiveMode] = useState<string>('chat'); // chat | image | video | slides | audio
+
+  useEffect(() => {
+    if (userId) {
+      fetchHistory(userId).then(({ data }) => {
+        if (data) {
+          const formatted = data.map((item: any) => ({
+            id: item.id,
+            prompt: item.prompt,
+            result: item.type === 'chat' || item.type === 'image' || item.type === 'audio' 
+              ? item.result 
+              : JSON.parse(item.result),
+            type: item.type,
+            timestamp: new Date(item.created_at),
+          }));
+          setConversations(formatted);
+        }
+      });
+    } else {
+      setConversations([]);
+    }
+  }, [userId]);
 
   const addConversation = (conversation: any) => {
     setConversations((prev) => [conversation, ...prev]);

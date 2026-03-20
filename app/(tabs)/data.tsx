@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import Animated, { FadeInDown, FadeInUp, FadeIn } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
+import * as WebBrowser from 'expo-web-browser';
 import { useChat } from '@/context/ChatContext';
 import { COLORS, RADIUS, SPACING } from '@/constants/gemini-theme';
 
@@ -109,6 +110,18 @@ const SlidesResultCard = ({ item, index }: { item: any; index: number }) => {
   const slides = item.result?.slides ?? [];
   const slide = slides[activeSlide];
 
+  const nextSlide = () => {
+    if (activeSlide < slides.length - 1) {
+      setActiveSlide(activeSlide + 1);
+    }
+  };
+
+  const prevSlide = () => {
+    if (activeSlide > 0) {
+      setActiveSlide(activeSlide - 1);
+    }
+  };
+
   return (
     <CardWrapper index={index}>
       <View style={styles.resultHeader}>
@@ -141,18 +154,44 @@ const SlidesResultCard = ({ item, index }: { item: any; index: number }) => {
         </LinearGradient>
       )}
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.slidesNav}>
-        {slides.map((_: any, i: number) => (
-          <TouchableOpacity
-            key={i}
-            onPress={() => setActiveSlide(i)}
-            style={[
-              styles.slideNavDot,
-              i === activeSlide && [styles.slideNavDotActive, { backgroundColor: COLORS.modeSlides }],
-            ]}
-          />
-        ))}
-      </ScrollView>
+      <View style={styles.slideControls}>
+        <TouchableOpacity 
+          onPress={prevSlide} 
+          style={[styles.slideControlBtn, activeSlide === 0 && { opacity: 0.3 }]}
+          disabled={activeSlide === 0}
+        >
+          <Ionicons name="chevron-back" size={24} color={COLORS.textPrimary} />
+          <Text style={styles.slideControlText}>Back</Text>
+        </TouchableOpacity>
+
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false} 
+          style={styles.slidesNavDots}
+          contentContainerStyle={{ alignItems: 'center' }}
+        >
+          {slides.map((_: any, i: number) => (
+            <TouchableOpacity
+              key={i}
+              onPress={() => setActiveSlide(i)}
+              style={[
+                styles.slideNavDot,
+                i === activeSlide && [styles.slideNavDotActive, { backgroundColor: COLORS.modeSlides }],
+              ]}
+              hitSlop={{ top: 15, bottom: 15, left: 10, right: 10 }}
+            />
+          ))}
+        </ScrollView>
+
+        <TouchableOpacity 
+          onPress={nextSlide} 
+          style={[styles.slideControlBtn, activeSlide === slides.length - 1 && { opacity: 0.3 }]}
+          disabled={activeSlide === slides.length - 1}
+        >
+          <Text style={styles.slideControlText}>Next</Text>
+          <Ionicons name="chevron-forward" size={24} color={COLORS.textPrimary} />
+        </TouchableOpacity>
+      </View>
     </CardWrapper>
   );
 };
@@ -192,37 +231,60 @@ const VideoResultCard = ({ item, index }: { item: any; index: number }) => {
   );
 };
 
-const AudioResultCard = ({ item, index }: { item: any; index: number }) => (
-  <CardWrapper index={index}>
-    <View style={styles.resultHeader}>
-      <View style={styles.badgeRow}>
-        <Ionicons name="musical-notes-outline" size={14} color={COLORS.modeAudio} />
-        <Text style={[styles.promptBadge, { color: COLORS.modeAudio }]}>Audio</Text>
+const AudioResultCard = ({ item, index }: { item: any; index: number }) => {
+  const [loading, setLoading] = useState(false);
+
+  async function playSound() {
+    setLoading(true);
+    try {
+      await WebBrowser.openBrowserAsync(item.result?.audioUrl);
+    } catch (error) {
+      console.error('Error opening audio browser', error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <CardWrapper index={index}>
+      <View style={styles.resultHeader}>
+        <View style={styles.badgeRow}>
+          <Ionicons name="musical-notes-outline" size={14} color={COLORS.modeAudio} />
+          <Text style={[styles.promptBadge, { color: COLORS.modeAudio }]}>Audio</Text>
+        </View>
+        <Text style={styles.timestamp}>{new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
       </View>
-      <Text style={styles.timestamp}>{new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
-    </View>
-    <View style={styles.audioPlayer}>
-      <LinearGradient
-        colors={[`${COLORS.modeAudio}20`, `${COLORS.bgCard}`]}
-        style={styles.audioPlayerGradient}
-      >
-        <View style={styles.audioHeader}>
-          <View style={styles.audioPlayBtn}>
-            <Ionicons name="play" size={20} color="#fff" />
+      <View style={styles.audioPlayer}>
+        <LinearGradient
+          colors={[`${COLORS.modeAudio}20`, `${COLORS.bgCard}`]}
+          style={styles.audioPlayerGradient}
+        >
+          <View style={styles.audioHeader}>
+            <TouchableOpacity 
+              style={styles.audioPlayBtn} 
+              onPress={playSound}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Ionicons name="play" size={20} color="#fff" />
+              )}
+            </TouchableOpacity>
+            <Text style={styles.audioWaveform}>Listen to Audio</Text>
           </View>
-          <Text style={styles.audioWaveform}>Audio Generated</Text>
-        </View>
-        <Text style={styles.audioScript} numberOfLines={3}>{item.result?.script}</Text>
-        <View style={styles.audioUrlBox}>
-          <Ionicons name="link-outline" size={12} color={COLORS.textMuted} />
-          <Text style={styles.audioUrl} numberOfLines={1}>
-            {item.result?.audioUrl}
-          </Text>
-        </View>
-      </LinearGradient>
-    </View>
-  </CardWrapper>
-);
+          <Text style={styles.audioScript} numberOfLines={3}>{item.result?.script}</Text>
+          <View style={styles.audioUrlBox}>
+            <Ionicons name="link-outline" size={12} color={COLORS.textMuted} />
+            <Text style={styles.audioUrl} numberOfLines={1}>
+              {item.result?.audioUrl}
+            </Text>
+          </View>
+        </LinearGradient>
+      </View>
+    </CardWrapper>
+  );
+};
 
 const ErrorCard = ({ item, index }: { item: any; index: number }) => (
   <CardWrapper index={index}>
@@ -278,7 +340,7 @@ export default function DataScreen() {
       <Animated.View entering={FadeInUp.delay(100).duration(600)} style={styles.header}>
         <View style={styles.headerLeft}>
           <Image source={logoSource} style={styles.logoHeader} contentFit="contain" />
-          <Text style={styles.appName}>History</Text>
+          <Text style={appNameStyles.appName}>History</Text>
         </View>
         {conversations.length > 0 && (
           <TouchableOpacity onPress={clearConversations} style={styles.clearBtnWrapper}>
@@ -381,6 +443,15 @@ export default function DataScreen() {
   );
 }
 
+const appNameStyles = StyleSheet.create({
+  appName: {
+    fontSize: 22,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
+    letterSpacing: -0.5,
+  },
+});
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
 
@@ -394,12 +465,7 @@ const styles = StyleSheet.create({
   },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   logoHeader: { width: 32, height: 32 },
-  appName: {
-    fontSize: 22,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-    letterSpacing: -0.5,
-  },
+  
   clearBtnWrapper: {
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -543,15 +609,40 @@ const styles = StyleSheet.create({
   bulletRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
   bulletDot: { width: 6, height: 6, borderRadius: 3 },
   bulletText: { flex: 1, color: COLORS.textSecondary, fontSize: 13 },
-  slidesNav: { marginTop: SPACING.md },
+  
+  slideControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: SPACING.md,
+    gap: 10,
+  },
+  slideControlBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: RADIUS.md,
+  },
+  slideControlText: {
+    color: COLORS.textPrimary,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  slidesNavDots: {
+    flex: 1,
+    maxHeight: 40,
+  },
   slideNavDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
     backgroundColor: 'rgba(255,255,255,0.1)',
-    marginRight: 8,
+    marginHorizontal: 4,
   },
-  slideNavDotActive: { width: 24 },
+  slideNavDotActive: { width: 20 },
 
   // Video
   videoTitle: {

@@ -1,11 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  ActivityIndicator,
   Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -14,7 +13,7 @@ import Animated, { FadeInDown, FadeInUp, FadeIn } from 'react-native-reanimated'
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
 import { useChat } from '@/context/ChatContext';
-import { fetchHistory, clearHistory } from '@/services/history';
+import { clearHistory } from '@/services/history';
 import { COLORS, RADIUS, SPACING } from '@/constants/gemini-theme';
 
 const { width } = Dimensions.get('window');
@@ -22,30 +21,18 @@ const logoSource = require('../../assets/logo/dawn_logo_nobg.png');
 
 export default function ProfileScreen() {
   const { user, userId, signOut } = useAuth();
-  const { clearConversations } = useChat();
-  const [dbHistory, setDbHistory] = useState<any[]>([]);
-  const [historyLoading, setHistoryLoading] = useState(false);
+  const { conversations, clearConversations } = useChat();
 
   // Pull display name: prefer Clerk firstName, fall back to email prefix
   const primaryEmail = user?.emailAddresses?.[0]?.emailAddress ?? '';
   const userName = user?.firstName ?? primaryEmail.split('@')[0] ?? 'Explorer';
   const avatarUrl = user?.imageUrl;
 
-  // Load Supabase history on mount
-  useEffect(() => {
-    if (!userId) return;
-    setHistoryLoading(true);
-    fetchHistory(userId, 200).then(({ data }) => {
-      setDbHistory(data ?? []);
-      setHistoryLoading(false);
-    });
-  }, [userId]);
-
   const historyStats = [
-    { label: 'Total Prompts', value: dbHistory.length, icon: 'chatbubble-ellipses-outline', color: COLORS.modeChat },
-    { label: 'Images Made', value: dbHistory.filter(h => h.type === 'image').length, icon: 'image-outline', color: COLORS.modeImage },
-    { label: 'Slides Made', value: dbHistory.filter(h => h.type === 'slides').length, icon: 'stats-chart-outline', color: COLORS.modeSlides },
-    { label: 'Videos Made', value: dbHistory.filter(h => h.type === 'video').length, icon: 'videocam-outline', color: COLORS.modeVideo },
+    { label: 'Total Prompts', value: conversations.length, icon: 'chatbubble-ellipses-outline', color: COLORS.modeChat },
+    { label: 'Images Made', value: conversations.filter(h => h.type === 'image').length, icon: 'image-outline', color: COLORS.modeImage },
+    { label: 'Slides Made', value: conversations.filter(h => h.type === 'slides').length, icon: 'stats-chart-outline', color: COLORS.modeSlides },
+    { label: 'Videos Made', value: conversations.filter(h => h.type === 'video').length, icon: 'videocam-outline', color: COLORS.modeVideo },
   ];
 
   const settings = [
@@ -59,7 +46,6 @@ export default function ProfileScreen() {
   const handleClearAll = async () => {
     if (userId) await clearHistory(userId);
     clearConversations();
-    setDbHistory([]);
   };
 
   return (
@@ -122,23 +108,17 @@ export default function ProfileScreen() {
             <Text style={styles.sectionTitle}>Activity Overview</Text>
           </View>
           
-          {historyLoading ? (
-            <View style={styles.loaderContainer}>
-              <ActivityIndicator color={COLORS.accent} size="small" />
-            </View>
-          ) : (
-            <View style={styles.statsGrid}>
-              {historyStats.map((stat, i) => (
-                <View key={i} style={styles.statCard}>
-                  <View style={[styles.statIconBg, { backgroundColor: `${stat.color}15` }]}>
-                    <Ionicons name={stat.icon as any} size={18} color={stat.color} />
-                  </View>
-                  <Text style={styles.statValue}>{stat.value}</Text>
-                  <Text style={styles.statLabel}>{stat.label}</Text>
+          <View style={styles.statsGrid}>
+            {historyStats.map((stat, i) => (
+              <View key={i} style={styles.statCard}>
+                <View style={[styles.statIconBg, { backgroundColor: `${stat.color}15` }]}>
+                  <Ionicons name={stat.icon as any} size={18} color={stat.color} />
                 </View>
-              ))}
-            </View>
-          )}
+                <Text style={styles.statValue}>{stat.value}</Text>
+                <Text style={styles.statLabel}>{stat.label}</Text>
+              </View>
+            ))}
+          </View>
         </Animated.View>
 
         {/* Settings Group */}
@@ -434,4 +414,3 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 });
-

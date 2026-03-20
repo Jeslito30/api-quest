@@ -28,6 +28,7 @@ import {
   generateSlides,
   generateAudioUrl,
 } from '@/services/api';
+import { saveToHistory } from '@/services/history';
 import { COLORS, RADIUS, SPACING } from '@/constants/gemini-theme';
 
 const { width } = Dimensions.get('window');
@@ -99,8 +100,15 @@ export default function HomeScreen() {
         type = 'chat';
       }
 
+      // Save to Supabase History
+      let finalId = Date.now().toString();
+      if (user?.id) {
+        const { data, error } = await saveToHistory(user.id, type, query, result);
+        if (data?.id) finalId = data.id;
+      }
+
       addConversation({
-        id: Date.now().toString(),
+        id: finalId,
         prompt: query,
         result,
         type,
