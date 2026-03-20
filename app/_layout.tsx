@@ -1,9 +1,12 @@
+// ⚠️ Polyfills must be first — before ANY other imports
+import 'react-native-get-random-values';
+import 'react-native-reanimated';
+
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { View, ActivityIndicator } from 'react-native';
-import 'react-native-reanimated';
 
 // Clerk
 import { ClerkProvider, useAuth as useClerkAuth } from '@clerk/clerk-expo';
@@ -32,8 +35,7 @@ export const unstable_settings = {
 
 function MainLayout() {
   const colorScheme = useColorScheme();
-  const { user, loading } = useAuth();
-  // Also grab isSignedIn from Clerk directly for the redirect logic
+  const { loading } = useAuth();
   const { isSignedIn } = useClerkAuth();
   const segments = useSegments();
   const router = useRouter();
