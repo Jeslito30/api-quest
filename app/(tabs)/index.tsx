@@ -2,10 +2,17 @@ import React, { useState, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ScrollView, FlatList, Dimensions, Keyboard,
-  KeyboardAvoidingView, Platform,
+  KeyboardAvoidingView, Platform, ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { Image } from 'expo-image';
+import Animated, { 
+  FadeInDown, 
+  FadeInUp,
+  FadeIn,
+} from 'react-native-reanimated';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
 import { useChat } from '@/context/ChatContext';
 import {
@@ -15,14 +22,15 @@ import {
 import { COLORS, RADIUS, SPACING } from '@/constants/gemini-theme';
 
 const { width } = Dimensions.get('window');
+const logoSource = require('../../assets/logo/dawn_logo_nobg.png');
 
 const MODES = [
-  { id: 'chat',   label: 'Chat',          icon: '💬', color: COLORS.modeChat,   desc: 'Ask anything' },
-  { id: 'image',  label: 'Create Image',  icon: '🎨', color: COLORS.modeImage,  desc: 'Generate images' },
-  { id: 'video',  label: 'Create Video',  icon: '🎬', color: COLORS.modeVideo,  desc: 'Video scripts' },
-  { id: 'slides', label: 'Create Slides', icon: '📊', color: COLORS.modeSlides, desc: 'Presentations' },
-  { id: 'audio',  label: 'Create Audio',  icon: '🎵', color: COLORS.modeAudio,  desc: 'Text to speech' },
-  { id: 'more',   label: 'More',          icon: '✦',  color: COLORS.modeMore,   desc: 'Explore more' },
+  { id: 'chat',   label: 'Chat',          icon: 'chatbubble-ellipses-outline', color: COLORS.modeChat,   desc: 'Ask anything' },
+  { id: 'image',  label: 'Create Image',  icon: 'image-outline',              color: COLORS.modeImage,  desc: 'Generate images' },
+  { id: 'video',  label: 'Create Video',  icon: 'videocam-outline',           color: COLORS.modeVideo,  desc: 'Video scripts' },
+  { id: 'slides', label: 'Create Slides', icon: 'stats-chart-outline',         color: COLORS.modeSlides, desc: 'Presentations' },
+  { id: 'audio',  label: 'Create Audio',  icon: 'musical-notes-outline',      color: COLORS.modeAudio,  desc: 'Text to speech' },
+  { id: 'more',   label: 'More',          icon: 'apps-outline',               color: COLORS.modeMore,   desc: 'Explore more' },
 ];
 
 const SUGGESTIONS = [
@@ -35,7 +43,7 @@ const SUGGESTIONS = [
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const { addConversation, setActiveMode } = useChat();
   const [prompt, setPrompt] = useState('');
   const [selectedMode, setSelectedMode] = useState('chat');
@@ -96,12 +104,21 @@ export default function HomeScreen() {
     const active = selectedMode === mode.id;
     return (
       <TouchableOpacity
-        style={[styles.modeChip, active && { borderColor: mode.color, backgroundColor: `${mode.color}20` }]}
+        style={[
+          styles.modeChip, 
+          active && { borderColor: mode.color, backgroundColor: `${mode.color}15` }
+        ]}
         onPress={() => setSelectedMode(mode.id)}
         activeOpacity={0.7}
       >
-        <Text style={styles.modeIcon}>{mode.icon}</Text>
-        <Text style={[styles.modeLabel, active && { color: mode.color }]}>{mode.label}</Text>
+        <Ionicons 
+          name={mode.icon} 
+          size={16} 
+          color={active ? mode.color : COLORS.textSecondary} 
+        />
+        <Text style={[styles.modeLabel, active && { color: mode.color, fontWeight: '600' }]}>
+          {mode.label}
+        </Text>
       </TouchableOpacity>
     );
   };
@@ -115,56 +132,26 @@ export default function HomeScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <View style={styles.header}>
+        {/* Header - now integrated into the top of the scrollable content */}
+        <Animated.View entering={FadeInUp.delay(100).duration(600)} style={styles.header}>
           <View style={styles.headerLeft}>
-            <LinearGradient
-              colors={[COLORS.gradientStart, COLORS.gradientMid, COLORS.gradientEnd]}
-              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-              style={styles.logoSmall}
-            >
-              <Text style={styles.logoSmallText}>✦</Text>
-            </LinearGradient>
-            <Text style={styles.appName}>Gemini</Text>
+            <Image source={logoSource} style={styles.logoHeader} contentFit="contain" />
+            <Text style={styles.appName}>Dawn AI</Text>
           </View>
-          <TouchableOpacity onPress={signOut} style={styles.avatarBtn}>
-            <LinearGradient
-              colors={[COLORS.accent, COLORS.gradientMid]}
-              style={styles.avatar}
-            >
-              <Text style={styles.avatarText}>{userName[0]?.toUpperCase()}</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        </View>
+        </Animated.View>
 
         {/* Greeting */}
-        <View style={styles.greetingSection}>
-          <Text style={styles.greetingText}>
-            <Text style={styles.greetingHello}>{greeting()}, {userName}</Text>
-          </Text>
-          <LinearGradient
-            colors={[COLORS.gradientStart, COLORS.gradientMid, COLORS.gradientEnd]}
-            start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-            style={{ borderRadius: RADIUS.sm }}
-          >
-            <Text style={styles.greetingSubtitle}>How can I help you today?</Text>
-          </LinearGradient>
-        </View>
-
-        {/* Mode Filters */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>What would you like to create?</Text>
-        </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.modesRow} contentContainerStyle={{ paddingHorizontal: SPACING.md }}>
-          {MODES.map((m) => <ModeChip key={m.id} mode={m} />)}
-        </ScrollView>
+        <Animated.View entering={FadeInDown.delay(200).duration(800)} style={styles.greetingSection}>
+          <Text style={styles.greetingHello}>{greeting()}, {userName}</Text>
+          <Text style={styles.greetingSubtitle}>How can I help you today?</Text>
+        </Animated.View>
 
         {/* Prompt Input */}
-        <View style={styles.inputCard}>
+        <Animated.View entering={FadeInDown.delay(400).duration(800)} style={styles.inputCard}>
           <TextInput
             ref={inputRef}
             style={styles.promptInput}
-            placeholder={`Ask Gemini to ${MODES.find(m => m.id === selectedMode)?.desc.toLowerCase() ?? 'help you'}...`}
+            placeholder={`Ask Dawn AI to ${MODES.find(m => m.id === selectedMode)?.desc.toLowerCase() ?? 'help you'}...`}
             placeholderTextColor={COLORS.textMuted}
             value={prompt}
             onChangeText={setPrompt}
@@ -179,59 +166,74 @@ export default function HomeScreen() {
               disabled={!prompt.trim() || loading}
             >
               <LinearGradient
-                colors={prompt.trim() && !loading ? [COLORS.gradientStart, COLORS.gradientMid] : [COLORS.bgSurface, COLORS.bgSurface]}
+                colors={prompt.trim() && !loading ? [COLORS.gradientStart, COLORS.gradientMid] : ['rgba(255,255,255,0.05)', 'rgba(255,255,255,0.05)']}
+                start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
                 style={styles.sendBtnGradient}
               >
                 {loading
-                  ? <Text style={styles.sendIcon}>⏳</Text>
-                  : <Text style={styles.sendIcon}>▶</Text>
+                  ? <ActivityIndicator size="small" color="#fff" />
+                  : <Ionicons name="send" size={18} color="#fff" />
                 }
               </LinearGradient>
             </TouchableOpacity>
           </View>
-        </View>
+        </Animated.View>
+
+        {/* Mode Filters */}
+        <Animated.View entering={FadeIn.delay(600).duration(800)}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Create with AI</Text>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.modesRow} contentContainerStyle={{ paddingHorizontal: SPACING.md }}>
+            {MODES.map((m) => <ModeChip key={m.id} mode={m} />)}
+          </ScrollView>
+        </Animated.View>
 
         {/* Suggestions */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Suggestions</Text>
-        </View>
-        <FlatList
-          data={SUGGESTIONS}
-          keyExtractor={(item) => item}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: SPACING.md }}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={styles.suggestionChip}
-              onPress={() => { setPrompt(item); handleSend(item); }}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.suggestionText}>{item}</Text>
-            </TouchableOpacity>
-          )}
-        />
+        <Animated.View entering={FadeIn.delay(800).duration(800)}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Quick Suggestions</Text>
+          </View>
+          <FlatList
+            data={SUGGESTIONS}
+            keyExtractor={(item) => item}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: SPACING.md }}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={styles.suggestionChip}
+                onPress={() => { setPrompt(item); handleSend(item); }}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.suggestionText}>{item}</Text>
+              </TouchableOpacity>
+            )}
+          />
+        </Animated.View>
 
         {/* Feature Cards */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Explore capabilities</Text>
-        </View>
-        <View style={styles.featureGrid}>
-          {MODES.filter(m => m.id !== 'more').map((mode) => (
-            <TouchableOpacity
-              key={mode.id}
-              style={styles.featureCard}
-              onPress={() => setSelectedMode(mode.id)}
-              activeOpacity={0.8}
-            >
-              <View style={[styles.featureIconBg, { backgroundColor: `${mode.color}20` }]}>
-                <Text style={styles.featureIcon}>{mode.icon}</Text>
-              </View>
-              <Text style={[styles.featureLabel, { color: mode.color }]}>{mode.label}</Text>
-              <Text style={styles.featureDesc}>{mode.desc}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        <Animated.View entering={FadeIn.delay(1000).duration(800)}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Explore capabilities</Text>
+          </View>
+          <View style={styles.featureGrid}>
+            {MODES.filter(m => m.id !== 'more').map((mode) => (
+              <TouchableOpacity
+                key={mode.id}
+                style={styles.featureCard}
+                onPress={() => setSelectedMode(mode.id)}
+                activeOpacity={0.8}
+              >
+                <View style={[styles.featureIconBg, { backgroundColor: `${mode.color}15` }]}>
+                  <Ionicons name={mode.icon} size={22} color={mode.color} />
+                </View>
+                <Text style={[styles.featureLabel, { color: mode.color }]}>{mode.label}</Text>
+                <Text style={styles.featureDesc}>{mode.desc}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </Animated.View>
 
         <View style={{ height: 100 }} />
       </ScrollView>
@@ -246,74 +248,61 @@ const styles = StyleSheet.create({
 
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: SPACING.md, paddingTop: 56, paddingBottom: SPACING.md,
+    paddingHorizontal: SPACING.md, paddingTop: 60, paddingBottom: SPACING.md,
   },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  logoSmall: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  logoSmallText: { fontSize: 18, color: '#fff' },
-  appName: { fontSize: 20, fontWeight: '700', color: COLORS.textPrimary, letterSpacing: -0.3 },
-  avatarBtn: {},
-  avatar: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  logoHeader: { width: 32, height: 32 },
+  appName: { fontSize: 22, fontWeight: '600', color: COLORS.textPrimary, letterSpacing: -0.5 },
 
   greetingSection: { paddingHorizontal: SPACING.md, marginTop: SPACING.md, marginBottom: SPACING.lg },
-  greetingHello: { fontSize: 28, fontWeight: '700', color: COLORS.textPrimary },
-  greetingText: { marginBottom: SPACING.xs },
-  greetingSubtitle: {
-    fontSize: 20, fontWeight: '600',
-    paddingVertical: 2, paddingHorizontal: 0,
-    // gradient text trick: bg will show as gradient, text transparent
-    color: '#fff', opacity: 0.85,
-  },
+  greetingHello: { fontSize: 28, fontWeight: '700', color: COLORS.textPrimary, letterSpacing: -0.5 },
+  greetingSubtitle: { fontSize: 18, color: COLORS.textSecondary, marginTop: 4, fontWeight: '500' },
 
   sectionHeader: { paddingHorizontal: SPACING.md, marginBottom: SPACING.sm, marginTop: SPACING.lg },
-  sectionTitle: { fontSize: 13, color: COLORS.textSecondary, fontWeight: '500', textTransform: 'uppercase', letterSpacing: 0.5 },
+  sectionTitle: { fontSize: 12, color: COLORS.textMuted, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 1 },
 
   modesRow: { marginBottom: SPACING.md },
   modeChip: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    borderWidth: 1, borderColor: COLORS.border,
-    borderRadius: RADIUS.full, paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm, marginRight: SPACING.sm,
-    backgroundColor: COLORS.bgCard,
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
+    borderRadius: RADIUS.full, paddingHorizontal: 16,
+    paddingVertical: 10, marginRight: 10,
+    backgroundColor: 'rgba(255,255,255,0.03)',
   },
-  modeIcon: { fontSize: 14 },
-  modeLabel: { fontSize: 13, color: COLORS.textSecondary, fontWeight: '500' },
+  modeLabel: { fontSize: 14, color: COLORS.textSecondary },
 
   inputCard: {
-    marginHorizontal: SPACING.md, backgroundColor: COLORS.bgCard,
-    borderRadius: RADIUS.xl, borderWidth: 1, borderColor: COLORS.border,
+    marginHorizontal: SPACING.md, backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: RADIUS.xl, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
     padding: SPACING.md,
   },
   promptInput: {
-    color: COLORS.textPrimary, fontSize: 16, minHeight: 80,
-    maxHeight: 160, textAlignVertical: 'top',
+    color: COLORS.textPrimary, fontSize: 16, minHeight: 100,
+    maxHeight: 200, textAlignVertical: 'top',
   },
   inputActions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: SPACING.sm },
   charCount: { fontSize: 11, color: COLORS.textMuted },
   sendBtn: { borderRadius: RADIUS.full, overflow: 'hidden' },
-  sendBtnDisabled: { opacity: 0.4 },
-  sendBtnGradient: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 20 },
-  sendIcon: { fontSize: 16, color: '#fff' },
+  sendBtnDisabled: { opacity: 0.5 },
+  sendBtnGradient: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22 },
 
   suggestionChip: {
-    backgroundColor: COLORS.bgCard, borderRadius: RADIUS.full,
-    paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm,
-    marginRight: SPACING.sm, borderWidth: 1, borderColor: COLORS.border,
+    backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: RADIUS.full,
+    paddingHorizontal: 16, paddingVertical: 10,
+    marginRight: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
   },
-  suggestionText: { color: COLORS.textSecondary, fontSize: 13 },
+  suggestionText: { color: COLORS.textSecondary, fontSize: 14 },
 
   featureGrid: {
     flexDirection: 'row', flexWrap: 'wrap',
-    paddingHorizontal: SPACING.md, gap: SPACING.sm,
+    paddingHorizontal: SPACING.md, gap: 12,
   },
   featureCard: {
-    width: (width - SPACING.md * 2 - SPACING.sm) / 2,
-    backgroundColor: COLORS.bgCard, borderRadius: RADIUS.lg,
-    padding: SPACING.md, borderWidth: 1, borderColor: COLORS.border,
+    width: (width - SPACING.md * 2 - 12) / 2,
+    backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: RADIUS.lg,
+    padding: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
   },
-  featureIconBg: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: SPACING.sm },
-  featureIcon: { fontSize: 20 },
-  featureLabel: { fontSize: 13, fontWeight: '600', marginBottom: 2 },
-  featureDesc: { fontSize: 11, color: COLORS.textMuted },
+  featureIconBg: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  featureLabel: { fontSize: 14, fontWeight: '600', marginBottom: 4 },
+  featureDesc: { fontSize: 12, color: COLORS.textMuted, lineHeight: 16 },
 });

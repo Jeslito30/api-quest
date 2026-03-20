@@ -1,20 +1,37 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '@/context/AuthContext';
 import { useChat } from '@/context/ChatContext';
+import { fetchHistory, clearHistory } from '@/services/history';
 import { COLORS, RADIUS, SPACING } from '@/constants/gemini-theme';
 
 export default function ProfileScreen() {
-  const { user, signOut } = useAuth();
+  const { user, userId, signOut } = useAuth();
   const { conversations, clearConversations } = useChat();
-  const userName = user?.email?.split('@')[0] ?? 'User';
+  const [dbHistory, setDbHistory] = useState<any[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
-  const stats = [
-    { label: 'Total Prompts', value: conversations.length, icon: '💬' },
-    { label: 'Images Made', value: conversations.filter(c => c.type === 'image').length, icon: '🎨' },
-    { label: 'Slides Made', value: conversations.filter(c => c.type === 'slides').length, icon: '📊' },
-    { label: 'Videos Made', value: conversations.filter(c => c.type === 'video').length, icon: '🎬' },
+  // Pull display name: prefer Clerk firstName, fall back to email prefix
+  const primaryEmail = user?.emailAddresses?.[0]?.emailAddress ?? '';
+  const userName = user?.firstName ?? primaryEmail.split('@')[0] ?? 'User';
+  const avatarUrl = user?.imageUrl;
+
+  // Load Supabase history on mount
+  useEffect(() => {
+    if (!userId) return;
+    setHistoryLoading(true);
+    fetchHistory(userId, 200).then(({ data }) => {
+      setDbHistory(data ?? []);
+      setHistoryLoading(false);
+    });
+  }, [userId]);
+
+  const historyStats = [
+    { label: 'Total Prompts', value: dbHistory.length, icon: '💬' },
+    { label: 'Images Made', value: dbHistory.filter(h => h.type === 'image').length, icon: '🎨' },
+    { label: 'Slides Made', value: dbHistory.filter(h => h.type === 'slides').length, icon: '📊' },
+    { label: 'Videos Made', value: dbHistory.filter(h => h.type === 'video').length, icon: '🎬' },
   ];
 
   const settings = [
@@ -25,38 +42,50 @@ export default function ProfileScreen() {
     { icon: '📋', label: 'Terms of Service', action: () => {} },
   ];
 
+  const handleClearAll = async () => {
+    if (userId) await clearHistory(userId);
+    clearConversations();
+    setDbHistory([]);
+  };
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      
 
-      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Profile</Text>
       </View>
 
       {/* User Card */}
       <View style={styles.userCard}>
-        <LinearGradient colors={[COLORS.gradientStart, COLORS.gradientMid, COLORS.gradientEnd]} style={styles.avatar}>
-          <Text style={styles.avatarText}>{userName[0]?.toUpperCase()}</Text>
-        </LinearGradient>
+        {avatarUrl ? (
+          <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
+        ) : (
+          <LinearGradient colors={[COLORS.gradientStart, COLORS.gradientMid, COLORS.gradientEnd]} style={styles.avatar}>
+            <Text style={styles.avatarText}>{userName[0]?.toUpperCase()}</Text>
+          </LinearGradient>
+        )}
         <Text style={styles.userName}>{userName}</Text>
-        <Text style={styles.userEmail}>{user?.email}</Text>
+        <Text style={styles.userEmail}>{primaryEmail}</Text>
         <View style={styles.badge}>
-          <Text style={styles.badgeText}>✦ Gemini Free</Text>
+          <Text style={styles.badgeText}>✦ Dawn AI Free</Text>
         </View>
       </View>
 
-      {/* Stats */}
+      {/* Stats from Supabase */}
       <Text style={styles.sectionLabel}>Activity</Text>
-      <View style={styles.statsGrid}>
-        {stats.map((stat, i) => (
-          <View key={i} style={styles.statCard}>
-            <Text style={styles.statIcon}>{stat.icon}</Text>
-            <Text style={styles.statValue}>{stat.value}</Text>
-            <Text style={styles.statLabel}>{stat.label}</Text>
-          </View>
-        ))}
-      </View>
+      {historyLoading ? (
+        <ActivityIndicator color={COLORS.accent} style={{ marginVertical: SPACING.md }} />
+      ) : (
+        <View style={styles.statsGrid}>
+          {historyStats.map((stat, i) => (
+            <View key={i} style={styles.statCard}>
+              <Text style={styles.statIcon}>{stat.icon}</Text>
+              <Text style={styles.statValue}>{stat.value}</Text>
+              <Text style={styles.statLabel}>{stat.label}</Text>
+            </View>
+          ))}
+        </View>
+      )}
 
       {/* Settings */}
       <Text style={styles.sectionLabel}>Settings</Text>
@@ -70,21 +99,21 @@ export default function ProfileScreen() {
         ))}
       </View>
 
-      {/* Danger Zone */}
+      {/* Data */}
       <Text style={styles.sectionLabel}>Data</Text>
       <View style={styles.settingsCard}>
-        <TouchableOpacity style={styles.settingRow} onPress={clearConversations}>
+        <TouchableOpacity style={styles.settingRow} onPress={handleClearAll}>
           <Text style={styles.settingIcon}>🗑️</Text>
           <Text style={[styles.settingLabel, { color: COLORS.warning }]}>Clear All Conversations</Text>
           <Text style={styles.settingArrow}>›</Text>
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity style={styles.signOutBtn} onPress={signOut}>
+      <TouchableOpacity style={styles.signOutBtn} onPress={() => signOut()}>
         <Text style={styles.signOutText}>Sign Out</Text>
       </TouchableOpacity>
 
-      <Text style={styles.version}>Gemini Clone v1.0.0</Text>
+      <Text style={styles.version}>Dawn AI v1.0.0</Text>
       <View style={{ height: 100 }} />
     </ScrollView>
   );
@@ -98,6 +127,7 @@ const styles = StyleSheet.create({
 
   userCard: { alignItems: 'center', paddingVertical: SPACING.xl, paddingHorizontal: SPACING.md },
   avatar: { width: 80, height: 80, borderRadius: 28, alignItems: 'center', justifyContent: 'center', marginBottom: SPACING.md },
+  avatarImage: { width: 80, height: 80, borderRadius: 28, marginBottom: SPACING.md },
   avatarText: { fontSize: 32, fontWeight: '700', color: '#fff' },
   userName: { fontSize: 22, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 4 },
   userEmail: { fontSize: 13, color: COLORS.textSecondary, marginBottom: SPACING.sm },

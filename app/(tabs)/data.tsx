@@ -22,8 +22,8 @@ const ChatResultCard = ({ item }) => (
       <Text style={styles.promptText}>{item.prompt}</Text>
     </View>
     <View style={styles.responseBubble}>
-      <View style={styles.geminiAvatar}>
-        <LinearGradient colors={[COLORS.gradientStart, COLORS.gradientMid]} style={styles.geminiAvatarGradient}>
+      <View style={styles.dawnAvatar}>
+        <LinearGradient colors={[COLORS.gradientStart, COLORS.gradientMid]} style={styles.dawnAvatarGradient}>
           <Text style={{ fontSize: 12, color: '#fff' }}>✦</Text>
         </LinearGradient>
       </View>
@@ -127,6 +127,7 @@ const VideoResultCard = ({ item }) => {
             <Text style={styles.sceneNumber}>Scene {scene.scene}</Text>
             <Text style={styles.sceneDuration}>{scene.duration}</Text>
           </View>
+          <Text style={styles.sceneTitle}>{scene.title}</Text>
           <Text style={styles.sceneTitle}>{scene.title}</Text>
           <Text style={styles.sceneDesc}>{scene.description}</Text>
           <View style={styles.narrationBox}>
@@ -246,7 +247,7 @@ export default function DataScreen() {
         <View style={styles.emptyState}>
           <Text style={styles.emptyIcon}>✦</Text>
           <Text style={styles.emptyTitle}>No results yet</Text>
-          <Text style={styles.emptySubtitle}>Go to Home and ask Gemini something!</Text>
+          <Text style={styles.emptySubtitle}>Go to Home and ask Dawn AI something!</Text>
           <TouchableOpacity
             style={styles.goHomeBtn}
             onPress={() => router.push('/')}
@@ -319,8 +320,8 @@ const styles = StyleSheet.create({
   promptText: { color: COLORS.textSecondary, fontSize: 13 },
 
   responseBubble: { flexDirection: 'row', gap: SPACING.sm },
-  geminiAvatar: { marginTop: 2 },
-  geminiAvatarGradient: { width: 24, height: 24, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  dawnAvatar: { marginTop: 2 },
+  dawnAvatarGradient: { width: 24, height: 24, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   responseText: { flex: 1, color: COLORS.textPrimary, fontSize: 14, lineHeight: 22 },
 
   // Image card
