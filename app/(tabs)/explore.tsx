@@ -289,6 +289,7 @@ export default function ExploreScreen() {
         </View>
       ) : activeTab === 'news' ? (
         <FlatList
+          key="news-list"
           data={news}
           keyExtractor={(item, i) => (item.url || String(i))}
           renderItem={({ item, index }) => <NewsCard item={item} index={index} />}
@@ -298,6 +299,7 @@ export default function ExploreScreen() {
         />
       ) : (
         <FlatList
+          key="images-list"
           data={images}
           keyExtractor={(item: any) => item.id}
           numColumns={2}

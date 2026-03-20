@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const GEMINI_URL = process.env.EXPO_PUBLIC_GEMINI_API_URL ||
-  'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+  'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent';
 const GEMINI_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY || '';
 const IMAGE_URL  = process.env.EXPO_PUBLIC_IMAGE_API_URL  || 'https://image.pollinations.ai/prompt/';
 const VOICERSS_KEY = process.env.EXPO_PUBLIC_VOICERSS_API_KEY || '';

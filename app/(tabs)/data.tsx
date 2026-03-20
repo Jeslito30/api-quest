@@ -363,7 +363,7 @@ export default function DataScreen() {
               style={styles.goHomeBtnGradient}
             >
               <Text style={styles.goHomeBtnText}>Start Creating</Text>
-              <Ionicons name="arrow-forward" size={18} color="#fff" />
+              
             </LinearGradient>
           </TouchableOpacity>
         </Animated.View>
