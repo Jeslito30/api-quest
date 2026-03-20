@@ -10,6 +10,8 @@ import {
   ScrollView,
   Dimensions,
   Platform,
+  Linking,
+  Modal,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
@@ -23,7 +25,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { fetchNews, searchImages } from '@/services/api';
 import { COLORS, RADIUS, SPACING } from '@/constants/gemini-theme';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 const logoSource = require('../../assets/logo/dawn_logo_nobg.png');
 
 const CATEGORIES = [
@@ -43,6 +45,7 @@ export default function ExploreScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Technology');
   const [activeTab, setActiveTab] = useState('news'); // news | images
+  const [selectedImage, setSelectedImage] = useState<any>(null);
 
   const loadNews = useCallback(async (query?: string) => {
     setLoading(true);
@@ -71,14 +74,24 @@ export default function ExploreScreen() {
   }, [selectedCategory]);
 
   useEffect(() => {
-    if (activeTab === 'news') loadNews();
-    else loadImages();
+    const query = searchQuery.trim();
+    if (activeTab === 'news') loadNews(query);
+    else loadImages(query);
   }, [activeTab, loadNews, loadImages]);
 
   const handleSearch = () => {
-    if (!searchQuery.trim()) return;
-    if (activeTab === 'news') loadNews(searchQuery);
-    else loadImages(searchQuery);
+    const query = searchQuery.trim();
+    if (!query) return;
+    loadNews(query);
+    loadImages(query);
+  };
+
+  const handleOpenNews = (url: string) => {
+    if (url) {
+      Linking.openURL(url).catch((err) =>
+        console.error("Couldn't load page", err)
+      );
+    }
   };
 
   const NewsCard = ({ item, index }: { item: any; index: number }) => (
@@ -86,48 +99,56 @@ export default function ExploreScreen() {
       entering={FadeInDown.delay(index * 100).duration(600)}
       style={styles.newsCard}
     >
-      <View style={styles.newsImageWrapper}>
-        {item.urlToImage ? (
-          <Image
-            source={{ uri: item.urlToImage }}
-            style={styles.newsImage}
-            contentFit="cover"
-            transition={300}
-          />
-        ) : (
-          <View style={styles.newsImagePlaceholder}>
-            <Ionicons name="newspaper-outline" size={32} color={COLORS.textMuted} />
-          </View>
-        )}
-        <LinearGradient
-          colors={['transparent', 'rgba(0,0,0,0.8)']}
-          style={styles.newsImageOverlay}
-        >
-          <View style={styles.sourceBadge}>
-            <Text style={styles.sourceText}>{item.source?.name}</Text>
-          </View>
-        </LinearGradient>
-      </View>
-      <View style={styles.newsContent}>
-        <Text style={styles.newsTitle} numberOfLines={2}>
-          {item.title}
-        </Text>
-        <Text style={styles.newsDesc} numberOfLines={2}>
-          {item.description}
-        </Text>
-        <View style={styles.newsFooter}>
-          <View style={styles.newsFooterItem}>
-            <Ionicons name="time-outline" size={12} color={COLORS.textMuted} />
-            <Text style={styles.newsTime}>
-              {item.publishedAt ? new Date(item.publishedAt).toLocaleDateString() : ''}
-            </Text>
-          </View>
-          <TouchableOpacity style={styles.readMoreBtn}>
-            <Text style={styles.readMoreText}>Read more</Text>
-            <Ionicons name="arrow-forward" size={12} color={COLORS.accent} />
-          </TouchableOpacity>
+      <TouchableOpacity 
+        activeOpacity={0.9} 
+        onPress={() => handleOpenNews(item.url)}
+      >
+        <View style={styles.newsImageWrapper}>
+          {item.urlToImage ? (
+            <Image
+              source={{ uri: item.urlToImage }}
+              style={styles.newsImage}
+              contentFit="cover"
+              transition={300}
+            />
+          ) : (
+            <View style={styles.newsImagePlaceholder}>
+              <Ionicons name="newspaper-outline" size={32} color={COLORS.textMuted} />
+            </View>
+          )}
+          <LinearGradient
+            colors={['transparent', 'rgba(0,0,0,0.8)']}
+            style={styles.newsImageOverlay}
+          >
+            <View style={styles.sourceBadge}>
+              <Text style={styles.sourceText}>{item.source?.name}</Text>
+            </View>
+          </LinearGradient>
         </View>
-      </View>
+        <View style={styles.newsContent}>
+          <Text style={styles.newsTitle} numberOfLines={2}>
+            {item.title}
+          </Text>
+          <Text style={styles.newsDesc} numberOfLines={2}>
+            {item.description}
+          </Text>
+          <View style={styles.newsFooter}>
+            <View style={styles.newsFooterItem}>
+              <Ionicons name="time-outline" size={12} color={COLORS.textMuted} />
+              <Text style={styles.newsTime}>
+                {item.publishedAt ? new Date(item.publishedAt).toLocaleDateString() : ''}
+              </Text>
+            </View>
+            <TouchableOpacity 
+              style={styles.readMoreBtn}
+              onPress={() => handleOpenNews(item.url)}
+            >
+              <Text style={styles.readMoreText}>Read more</Text>
+              <Ionicons name="arrow-forward" size={12} color={COLORS.accent} />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </TouchableOpacity>
     </Animated.View>
   );
 
@@ -136,24 +157,30 @@ export default function ExploreScreen() {
       entering={FadeInDown.delay(index * 50).duration(500)}
       style={styles.imageCard}
     >
-      <Image
-        source={{ uri: item.urls?.small }}
-        style={styles.imageItem}
-        contentFit="cover"
-        transition={300}
-      />
-      <LinearGradient
-        colors={['transparent', 'rgba(0,0,0,0.7)']}
-        style={styles.imageInfoOverlay}
+      <TouchableOpacity 
+        style={{ flex: 1 }} 
+        activeOpacity={0.8}
+        onPress={() => setSelectedImage(item)}
       >
-        <Text style={styles.imageAlt} numberOfLines={1}>
-          {item.alt_description || item.description || 'Untitled'}
-        </Text>
-        <View style={styles.imageAuthorRow}>
-          <Ionicons name="camera-outline" size={10} color="#fff" />
-          <Text style={styles.imageAuthor}>{item.user?.name}</Text>
-        </View>
-      </LinearGradient>
+        <Image
+          source={{ uri: item.urls?.small }}
+          style={styles.imageItem}
+          contentFit="cover"
+          transition={300}
+        />
+        <LinearGradient
+          colors={['transparent', 'rgba(0,0,0,0.7)']}
+          style={styles.imageInfoOverlay}
+        >
+          <Text style={styles.imageAlt} numberOfLines={1}>
+            {item.alt_description || item.description || 'Untitled'}
+          </Text>
+          <View style={styles.imageAuthorRow}>
+            <Ionicons name="camera-outline" size={10} color="#fff" />
+            <Text style={styles.imageAuthor}>{item.user?.name}</Text>
+          </View>
+        </LinearGradient>
+      </TouchableOpacity>
     </Animated.View>
   );
 
@@ -213,7 +240,6 @@ export default function ExploreScreen() {
               style={[styles.tab, activeTab === tab && styles.tabActive]}
               onPress={() => {
                 setActiveTab(tab);
-                setSearchQuery('');
               }}
             >
               <Ionicons
@@ -310,6 +336,46 @@ export default function ExploreScreen() {
           ItemSeparatorComponent={() => <View style={{ height: SPACING.md }} />}
         />
       )}
+
+      {/* Image Gallery Modal */}
+      <Modal
+        visible={!!selectedImage}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setSelectedImage(null)}
+      >
+        <View style={styles.modalContainer}>
+          <TouchableOpacity 
+            style={styles.modalCloseBtn}
+            onPress={() => setSelectedImage(null)}
+          >
+            <Ionicons name="close" size={28} color="#fff" />
+          </TouchableOpacity>
+          
+          {selectedImage && (
+            <View style={styles.modalContent}>
+              <Image
+                source={{ uri: selectedImage.urls?.regular }}
+                style={styles.modalImage}
+                contentFit="contain"
+              />
+              <View style={styles.modalInfo}>
+                <Text style={styles.modalTitle}>
+                  {selectedImage.alt_description || selectedImage.description || 'Untitled'}
+                </Text>
+                <Text style={styles.modalAuthor}>By {selectedImage.user?.name}</Text>
+                
+                <TouchableOpacity 
+                  style={styles.downloadBtn}
+                  onPress={() => Linking.openURL(selectedImage.links?.html)}
+                >
+                  <Text style={styles.downloadText}>View on Unsplash</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -490,4 +556,59 @@ const styles = StyleSheet.create({
   imageAlt: { color: '#fff', fontSize: 12, fontWeight: '600', marginBottom: 4 },
   imageAuthorRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   imageAuthor: { color: 'rgba(255,255,255,0.7)', fontSize: 10, fontWeight: '500' },
+
+  // Modal Styles
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalCloseBtn: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 10,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalContent: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+  },
+  modalImage: {
+    width: width,
+    height: height * 0.6,
+  },
+  modalInfo: {
+    padding: 24,
+    width: '100%',
+  },
+  modalTitle: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  modalAuthor: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 14,
+    marginBottom: 24,
+  },
+  downloadBtn: {
+    backgroundColor: COLORS.accent,
+    paddingVertical: 14,
+    borderRadius: RADIUS.lg,
+    alignItems: 'center',
+  },
+  downloadText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 15,
+  },
 });
